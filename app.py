@@ -5,18 +5,30 @@ import tempfile
 
 st.set_page_config(page_title="Baixador Privado 4K", page_icon="🎬", layout="centered")
 
-# --- OCULTAR MARCAS D'ÁGUA E MENUS DO STREAMLIT ---
+# --- OCULTAR MARCA D'ÁGUA E ELEMENTOS DO STREAMLIT (FORÇADO) ---
 hide_streamlit_style = """
             <style>
+            /* Esconde cabeçalho, menu e rodapé padrão */
             #MainMenu {visibility: hidden;}
             footer {visibility: hidden;}
             header {visibility: hidden;}
             .stAppHeader {display: none;}
-            [data-testid="stToolbar"] {visibility: hidden !important;}
-            [data-testid="stDecoration"] {display: none;}
-            [data-testid="stStatusWidget"] {visibility: hidden;}
+            
+            /* Esconde os botões flutuantes do Streamlit Community Cloud */
+            [data-testid="stStatusWidget"] {display: none !important;}
+            [data-testid="stDecoration"] {display: none !important;}
+            [data-testid="stToolbar"] {display: none !important;}
             .viewerBadge_container__1A54N {display: none !important;}
-            button[title="View source"] {display: none !important;}
+            .viewerBadge_link__1S137 {display: none !important;}
+            div[class*="viewerBadge"] {display: none !important;}
+            div[class*="styles_viewerBadge"] {display: none !important;}
+            div[class*="stActionButton"] {display: none !important;}
+            
+            /* Remove espaço em branco desnecessário */
+            .block-container {
+                padding-top: 2rem !important;
+                padding-bottom: 0rem !important;
+            }
             </style>
             """
 st.markdown(hide_streamlit_style, unsafe_allow_html=True)
@@ -108,7 +120,7 @@ if st.button("🚀 Processar Vídeo"):
                     with open(final_file, "rb") as f:
                         file_bytes = f.read()
 
-                    # Limpa o arquivo temporário imediatamente
+                    # Limpa o arquivo temporário
                     try:
                         os.remove(final_file)
                     except:
