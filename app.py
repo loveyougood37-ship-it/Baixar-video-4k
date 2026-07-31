@@ -5,28 +5,33 @@ import tempfile
 
 st.set_page_config(page_title="Baixador Privado 4K", page_icon="🎬", layout="centered")
 
-# --- OCULTAR MARCA D'ÁGUA E ELEMENTOS DO STREAMLIT (FORÇADO) ---
+# --- OCULTAR TUDO NO STREAMLIT (CSS GLOBAL) ---
 hide_streamlit_style = """
             <style>
-            /* Esconde cabeçalho, menu e rodapé padrão */
-            #MainMenu {visibility: hidden;}
-            footer {visibility: hidden;}
-            header {visibility: hidden;}
-            .stAppHeader {display: none;}
+            /* Esconde menu, rodapé, barra superior e widgets de status */
+            #MainMenu {visibility: hidden !important;}
+            footer {visibility: hidden !important; display: none !important;}
+            header {visibility: hidden !important; display: none !important;}
+            .stAppHeader {display: none !important;}
             
-            /* Esconde os botões flutuantes do Streamlit Community Cloud */
+            /* Tenta remover os badges da hospedagem */
             [data-testid="stStatusWidget"] {display: none !important;}
             [data-testid="stDecoration"] {display: none !important;}
             [data-testid="stToolbar"] {display: none !important;}
-            .viewerBadge_container__1A54N {display: none !important;}
-            .viewerBadge_link__1S137 {display: none !important;}
-            div[class*="viewerBadge"] {display: none !important;}
-            div[class*="styles_viewerBadge"] {display: none !important;}
-            div[class*="stActionButton"] {display: none !important;}
             
-            /* Remove espaço em branco desnecessário */
+            .viewerBadge_container__1A54N,
+            .viewerBadge_link__1S137,
+            div[class*="viewerBadge"],
+            div[class*="styles_viewerBadge"],
+            div[class*="stActionButton"],
+            iframe[title*="streamlit"] {
+                display: none !important;
+                visibility: hidden !important;
+            }
+
+            /* Remove espaço em branco desnecessário no topo/rodapé */
             .block-container {
-                padding-top: 2rem !important;
+                padding-top: 1.5rem !important;
                 padding-bottom: 0rem !important;
             }
             </style>
