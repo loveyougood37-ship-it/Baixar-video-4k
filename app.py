@@ -5,6 +5,22 @@ import tempfile
 
 st.set_page_config(page_title="Baixador Privado 4K", page_icon="🎬", layout="centered")
 
+# --- OCULTAR MARCAS D'ÁGUA E MENUS DO STREAMLIT ---
+hide_streamlit_style = """
+            <style>
+            #MainMenu {visibility: hidden;}
+            footer {visibility: hidden;}
+            header {visibility: hidden;}
+            .stAppHeader {display: none;}
+            [data-testid="stToolbar"] {visibility: hidden !important;}
+            [data-testid="stDecoration"] {display: none;}
+            [data-testid="stStatusWidget"] {visibility: hidden;}
+            .viewerBadge_container__1A54N {display: none !important;}
+            button[title="View source"] {display: none !important;}
+            </style>
+            """
+st.markdown(hide_streamlit_style, unsafe_allow_html=True)
+
 # --- SEGURANÇA E SENHA ---
 SENHA_CORRETA = "suasenha123"
 
@@ -57,8 +73,7 @@ if st.button("🚀 Processar Vídeo"):
             temp_dir = tempfile.gettempdir()
             output_template = os.path.join(temp_dir, 'yt_download_temp.%(ext)s')
 
-            # Tenta com o Chrome primeiro; se der erro por estar aberto, usa fallback direto sem travar
-            def rodar_download(usar_cookies=True):
+            def rodar_download():
                 opts = {
                     'outtmpl': output_template,
                     'format': format_opt,
@@ -71,8 +86,6 @@ if st.button("🚀 Processar Vídeo"):
                         }
                     }
                 }
-                if usar_cookies:
-                    opts['cookiesfrombrowser'] = ('chrome',)
 
                 if is_audio:
                     opts['postprocessors'] = [{
@@ -88,19 +101,14 @@ if st.button("🚀 Processar Vídeo"):
                     return info.get('title', 'video') if info else 'video'
 
             try:
-                try:
-                    titulo = rodar_download(usar_cookies=True)
-                except Exception:
-                    # Se o Chrome estiver aberto e bloquear, roda o download seguro via client sem cookies
-                    titulo = rodar_download(usar_cookies=False)
-
+                titulo = rodar_download()
                 final_file = os.path.join(temp_dir, f"yt_download_temp.{ext_target}")
 
                 if os.path.exists(final_file):
                     with open(final_file, "rb") as f:
                         file_bytes = f.read()
 
-                    # Apaga do PC imediatamente após ler
+                    # Limpa o arquivo temporário imediatamente
                     try:
                         os.remove(final_file)
                     except:
