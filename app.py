@@ -97,9 +97,10 @@ if st.button("🚀 Processar Vídeo"):
                     'nocheckcertificate': True,
                     'quiet': True,
                     'no_warnings': True,
+                    'user_agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
                     'extractor_args': {
                         'youtube': {
-                            'player_client': ['android', 'ios']
+                            'player_client': ['mweb', 'tv_embedded', 'web_creator', 'android']
                         }
                     }
                 }
