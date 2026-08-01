@@ -1,9 +1,6 @@
 import streamlit as st
-import yt_dlp
-import os
-import tempfile
-import glob
-import imageio_ffmpeg
+import requests
+import json
 
 st.set_page_config(page_title="Baixador Privado 4K", page_icon="🎬", layout="centered")
 
@@ -68,108 +65,88 @@ if st.button("🚀 Processar Vídeo"):
     elif "playlist" in raw_url.lower():
         st.error("Links de playlist não são suportados. Cole o link de um vídeo individual!")
     else:
-        with st.spinner("⏳ Processando e unindo faixas na qualidade MÁXIMA da fonte..."):
+        with st.spinner("⚡ Gerando link direto de alta velocidade e qualidade 4K..."):
             clean_url = raw_url.strip()
 
-            try:
-                ffmpeg_bin = imageio_ffmpeg.get_ffmpeg_exe()
-            except:
-                ffmpeg_bin = 'ffmpeg'
-
-            # Pega o melhor vídeo independente do codec + melhor áudio
-            if "4K" in qualidade:
-                format_opt = "bestvideo[height<=2160]+bestaudio/best"
-            elif "1080p" in qualidade:
-                format_opt = "bestvideo[height<=1080]+bestaudio/best"
-            elif "720p" in qualidade:
-                format_opt = "bestvideo[height<=720]+bestaudio/best"
-            else:
-                format_opt = "bestaudio/best"
-
+            # Mapeamento de qualidade para a API
             is_audio = "Apenas Áudio" in qualidade
             
-            temp_dir = tempfile.gettempdir()
-            # Deixamos a extensão flexível para o yt-dlp não forçar perda de qualidade
-            prefixo_temp = os.path.join(temp_dir, 'yt_download_target')
-            output_template = f"{prefixo_temp}.%(ext)s"
+            if "4K" in qualidade:
+                res_val = "2160"
+            elif "1080p" in qualidade:
+                res_val = "1080"
+            elif "720p" in qualidade:
+                res_val = "720"
+            else:
+                res_val = "1080"
 
-            def rodar_download():
-                opts = {
-                    'outtmpl': output_template,
-                    'format': format_opt,
-                    'ffmpeg_location': ffmpeg_bin,
-                    'nocheckcertificate': True,
-                    'quiet': True,
-                    'no_warnings': True,
-                    'user_agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36',
-                    'extractor_args': {
-                        'youtube': {
-                            'player_client': ['ios', 'android_vr', 'tv_embedded'],
-                            'player_skip': ['webpage', 'configs']
-                        }
-                    }
-                }
+            # Configuração do payload da API Cobalt
+            headers = {
+                "Accept": "application/json",
+                "Content-Type": "application/json"
+            }
 
-                candidatos = [
-                    os.path.join(os.path.dirname(__file__), 'cookies.txt'),
-                    'cookies.txt'
-                ]
-                for path in candidatos:
-                    if os.path.exists(path):
-                        opts['cookiefile'] = path
-                        break
+            payload = {
+                "url": clean_url,
+                "videoQuality": res_val,
+                "downloadMode": "audio" if is_audio else "auto",
+                "audioFormat": "mp3" if is_audio else "mp3",
+                "youtubeVideoCodec": "vp9"
+            }
 
-                if is_audio:
-                    opts['postprocessors'] = [{
-                        'key': 'FFmpegExtractAudio',
-                        'preferredcodec': 'mp3',
-                        'preferredquality': '192',
-                    }]
-                else:
-                    # Mescla em MKV se necessário, pois aceita faixas 4K VP9 sem perder NENHUM pixel
-                    opts['merge_output_format'] = 'mkv/mp4'
+            # Instâncias públicas e oficiais da API do Cobalt
+            instancias_api = [
+                "https://api.cobalt.tools/",
+                "https://cobalt-api.kwiatekmonster.com/",
+                "https://co.wuk.sh/"
+            ]
 
-                with yt_dlp.YoutubeDL(opts) as ydl:
-                    info = ydl.extract_info(clean_url, download=True)
-                    return info.get('title', 'video') if info else 'video'
+            download_url = None
+            erro_msg = ""
 
-            try:
-                # Limpa downloads antigos na pasta temp antes de começar
-                for f in glob.glob(f"{prefixo_temp}.*"):
-                    try:
-                        os.remove(f)
-                    except:
-                        pass
+            for api_base in instancias_api:
+                try:
+                    response = requests.post(api_base, headers=headers, json=payload, timeout=12)
+                    if response.status_code == 200:
+                        data = response.json()
+                        status = data.get("status")
+                        
+                        if status in ["stream", "redirect", "tunnel"]:
+                            download_url = data.get("url")
+                            break
+                        elif status == "picker":
+                            # Caso retorne múltiplos links, pega a primeira opção
+                            picker_items = data.get("picker", [])
+                            if picker_items:
+                                download_url = picker_items[0].get("url")
+                                break
+                    else:
+                        erro_msg = f"Servidor respondeu com código {response.status_code}"
+                except Exception as e:
+                    erro_msg = str(e)
+                    continue
 
-                titulo = rodar_download()
-
-                # Procura o arquivo gerado (pode ser .mp4, .mkv ou .webm)
-                arquivos_encontrados = glob.glob(f"{prefixo_temp}.*")
-
-                if arquivos_encontrados:
-                    final_file = arquivos_encontrados[0]
-                    ext_real = os.path.splitext(final_file)[1].replace('.', '')
-
-                    with open(final_file, "rb") as f:
-                        file_bytes = f.read()
-
-                    try:
-                        os.remove(final_file)
-                    except:
-                        pass
-
-                    mime_type = "audio/mp3" if is_audio else f"video/{ext_real}"
-
-                    st.success("✅ Vídeo processado na resolução MÁXIMA nativa!")
-                    st.download_button(
-                        label=f"📥 CLIQUE AQUI PARA BAIXAR (.{ext_real.upper()})",
-                        data=file_bytes,
-                        file_name=f"{titulo}.{ext_real}",
-                        mime=mime_type,
-                        use_container_width=True
-                    )
-                else:
-                    st.error("Não foi possível localizar o arquivo gerado. Tente novamente.")
-
-            except Exception as e:
-                st.error(f"Erro ao processar: {e}")
+            if download_url:
+                st.success("✅ Vídeo processado na máxima resolução!")
+                
+                # Baixa os bytes do arquivo para disponibilizar botão direto no Streamlit
+                try:
+                    file_req = requests.get(download_url, stream=True, timeout=60)
+                    if file_req.status_code == 200:
+                        file_bytes = file_req.content
+                        ext = "mp3" if is_audio else "mp4"
+                        
+                        st.download_button(
+                            label="📥 CLIQUE AQUI PARA BAIXAR O ARQUIVO",
+                            data=file_bytes,
+                            file_name=f"video_4k.{ext}",
+                            mime="audio/mp3" if is_audio else "video/mp4",
+                            use_container_width=True
+                        )
+                    else:
+                        st.markdown(f"[👉 CLIQUE AQUI PARA BAIXAR DIRETO]({download_url})")
+                except:
+                    # Se o arquivo for gigantesco, disponibiliza o link direto de alta velocidade
+                    st.markdown(f"[👉 CLIQUE AQUI PARA BAIXAR DIRETO NO CELULAR]({download_url})")
+            else:
+                st.error("Não foi possível obter o link do vídeo. Tente novamente ou verifique o link do YouTube.")
