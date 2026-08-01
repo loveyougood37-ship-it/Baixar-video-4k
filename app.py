@@ -8,17 +8,13 @@ st.set_page_config(page_title="Baixador Privado 4K", page_icon="🎬", layout="c
 # --- OCULTAR TUDO NO STREAMLIT (CSS GLOBAL) ---
 hide_streamlit_style = """
             <style>
-            /* Esconde menu, rodapé, barra superior e widgets de status */
             #MainMenu {visibility: hidden !important;}
             footer {visibility: hidden !important; display: none !important;}
             header {visibility: hidden !important; display: none !important;}
             .stAppHeader {display: none !important;}
-            
-            /* Tenta remover os badges da hospedagem */
             [data-testid="stStatusWidget"] {display: none !important;}
             [data-testid="stDecoration"] {display: none !important;}
             [data-testid="stToolbar"] {display: none !important;}
-            
             .viewerBadge_container__1A54N,
             .viewerBadge_link__1S137,
             div[class*="viewerBadge"],
@@ -28,8 +24,6 @@ hide_streamlit_style = """
                 display: none !important;
                 visibility: hidden !important;
             }
-
-            /* Remove espaço em branco desnecessário no topo/rodapé */
             .block-container {
                 padding-top: 1.5rem !important;
                 padding-bottom: 0rem !important;
@@ -97,13 +91,11 @@ if st.button("🚀 Processar Vídeo"):
                     'nocheckcertificate': True,
                     'quiet': True,
                     'no_warnings': True,
-                    'user_agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
-                    'extractor_args': {
-                        'youtube': {
-                            'player_client': ['mweb', 'tv_embedded', 'web_creator', 'android']
-                        }
-                    }
                 }
+
+                # Se o arquivo cookies.txt existir no projeto, usa ele para bypassar a trava
+                if os.path.exists("cookies.txt"):
+                    opts['cookiefile'] = "cookies.txt"
 
                 if is_audio:
                     opts['postprocessors'] = [{
@@ -126,7 +118,6 @@ if st.button("🚀 Processar Vídeo"):
                     with open(final_file, "rb") as f:
                         file_bytes = f.read()
 
-                    # Limpa o arquivo temporário
                     try:
                         os.remove(final_file)
                     except:
