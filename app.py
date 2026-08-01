@@ -2,6 +2,7 @@ import streamlit as st
 import yt_dlp
 import os
 import tempfile
+import imageio_ffmpeg
 
 st.set_page_config(page_title="Baixador Privado 4K", page_icon="🎬", layout="centered")
 
@@ -66,15 +67,19 @@ if st.button("🚀 Processar Vídeo"):
     elif "playlist" in raw_url.lower():
         st.error("Links de playlist não são suportados. Cole o link de um vídeo individual!")
     else:
-        with st.spinner("⏳ Processando vídeo..."):
+        with st.spinner("⏳ Processando e unindo áudio + vídeo em alta qualidade..."):
             clean_url = raw_url.strip()
 
+            # Pega o caminho do FFmpeg automático do sistema
+            ffmpeg_path = imageio_ffmpeg.get_ffmpeg_exe()
+
+            # Regras de alta qualidade real
             if "4K" in qualidade:
-                format_opt = "bestvideo[height<=2160]+bestaudio/best/bestvideo+bestaudio"
+                format_opt = "bestvideo[height<=2160]+bestaudio/best"
             elif "1080p" in qualidade:
-                format_opt = "bestvideo[height<=1080]+bestaudio/best/bestvideo+bestaudio"
+                format_opt = "bestvideo[height<=1080]+bestaudio/best"
             elif "720p" in qualidade:
-                format_opt = "bestvideo[height<=720]+bestaudio/best/bestvideo+bestaudio"
+                format_opt = "bestvideo[height<=720]+bestaudio/best"
             else:
                 format_opt = "bestaudio/best"
 
@@ -88,10 +93,10 @@ if st.button("🚀 Processar Vídeo"):
                 opts = {
                     'outtmpl': output_template,
                     'format': format_opt,
+                    'ffmpeg_location': ffmpeg_path, # Injeta o FFmpeg no yt-dlp
                     'nocheckcertificate': True,
                     'quiet': True,
                     'no_warnings': True,
-                    # Simula requisição originada de aplicativo mobile/TV (não bloqueado por IP de datacenters)
                     'user_agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36',
                     'extractor_args': {
                         'youtube': {
@@ -101,7 +106,6 @@ if st.button("🚀 Processar Vídeo"):
                     }
                 }
 
-                # Tenta carregar cookies.txt apenas se existir
                 candidatos = [
                     os.path.join(os.path.dirname(__file__), 'cookies.txt'),
                     'cookies.txt'
@@ -137,7 +141,7 @@ if st.button("🚀 Processar Vídeo"):
                     except:
                         pass
 
-                    st.success("✅ Vídeo pronto para envio!")
+                    st.success("✅ Vídeo pronto em alta definição!")
                     st.download_button(
                         label="📥 CLIQUE AQUI PARA BAIXAR NO SEU CELULAR",
                         data=file_bytes,
