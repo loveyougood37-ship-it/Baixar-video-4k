@@ -69,12 +69,13 @@ if st.button("🚀 Processar Vídeo"):
         with st.spinner("⏳ Processando vídeo..."):
             clean_url = raw_url.strip()
 
+            # Formatos flexíveis com fallback para nunca dar erro de 'Requested format not available'
             if "4K" in qualidade:
-                format_opt = "bestvideo[height<=2160]+bestaudio/best"
+                format_opt = "bestvideo[height<=2160]+bestaudio/bestvideo+bestaudio/best"
             elif "1080p" in qualidade:
-                format_opt = "bestvideo[height<=1080]+bestaudio/best"
+                format_opt = "bestvideo[height<=1080]+bestaudio/bestvideo+bestaudio/best"
             elif "720p" in qualidade:
-                format_opt = "bestvideo[height<=720]+bestaudio/best"
+                format_opt = "bestvideo[height<=720]+bestaudio/bestvideo+bestaudio/best"
             else:
                 format_opt = "bestaudio/best"
 
@@ -93,13 +94,17 @@ if st.button("🚀 Processar Vídeo"):
                     'no_warnings': True,
                 }
 
-                # Caminho blindado para achar o cookies.txt no Render/GitHub
-                cookie_path = os.path.join(os.path.dirname(__file__), 'cookies.txt')
+                candidatos = [
+                    os.path.join(os.path.dirname(__file__), 'cookies.txt'),
+                    os.path.join(os.path.dirname(__file__), 'cookies.txt.txt'),
+                    'cookies.txt',
+                    'cookies.txt.txt'
+                ]
 
-                if os.path.exists(cookie_path):
-                    opts['cookiefile'] = cookie_path
-                elif os.path.exists("cookies.txt"):
-                    opts['cookiefile'] = "cookies.txt"
+                for path in candidatos:
+                    if os.path.exists(path):
+                        opts['cookiefile'] = path
+                        break
 
                 if is_audio:
                     opts['postprocessors'] = [{
