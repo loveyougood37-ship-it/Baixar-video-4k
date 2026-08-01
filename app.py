@@ -93,8 +93,12 @@ if st.button("🚀 Processar Vídeo"):
                     'no_warnings': True,
                 }
 
-                # Se o arquivo cookies.txt existir no projeto, usa ele para bypassar a trava
-                if os.path.exists("cookies.txt"):
+                # Caminho blindado para achar o cookies.txt no Render/GitHub
+                cookie_path = os.path.join(os.path.dirname(__file__), 'cookies.txt')
+
+                if os.path.exists(cookie_path):
+                    opts['cookiefile'] = cookie_path
+                elif os.path.exists("cookies.txt"):
                     opts['cookiefile'] = "cookies.txt"
 
                 if is_audio:
