@@ -69,13 +69,12 @@ if st.button("🚀 Processar Vídeo"):
         with st.spinner("⏳ Processando vídeo..."):
             clean_url = raw_url.strip()
 
-            # Formatos flexíveis com fallback para nunca dar erro de 'Requested format not available'
             if "4K" in qualidade:
-                format_opt = "bestvideo[height<=2160]+bestaudio/bestvideo+bestaudio/best"
+                format_opt = "bestvideo[height<=2160]+bestaudio/best/bestvideo+bestaudio"
             elif "1080p" in qualidade:
-                format_opt = "bestvideo[height<=1080]+bestaudio/bestvideo+bestaudio/best"
+                format_opt = "bestvideo[height<=1080]+bestaudio/best/bestvideo+bestaudio"
             elif "720p" in qualidade:
-                format_opt = "bestvideo[height<=720]+bestaudio/bestvideo+bestaudio/best"
+                format_opt = "bestvideo[height<=720]+bestaudio/best/bestvideo+bestaudio"
             else:
                 format_opt = "bestaudio/best"
 
@@ -92,15 +91,21 @@ if st.button("🚀 Processar Vídeo"):
                     'nocheckcertificate': True,
                     'quiet': True,
                     'no_warnings': True,
+                    # Simula requisição originada de aplicativo mobile/TV (não bloqueado por IP de datacenters)
+                    'user_agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36',
+                    'extractor_args': {
+                        'youtube': {
+                            'player_client': ['ios', 'android_vr', 'tv_embedded'],
+                            'player_skip': ['webpage', 'configs']
+                        }
+                    }
                 }
 
+                # Tenta carregar cookies.txt apenas se existir
                 candidatos = [
                     os.path.join(os.path.dirname(__file__), 'cookies.txt'),
-                    os.path.join(os.path.dirname(__file__), 'cookies.txt.txt'),
-                    'cookies.txt',
-                    'cookies.txt.txt'
+                    'cookies.txt'
                 ]
-
                 for path in candidatos:
                     if os.path.exists(path):
                         opts['cookiefile'] = path
