@@ -58,7 +58,7 @@ raw_url = st.text_input("🔗 Cole a URL do Vídeo do YouTube:")
 
 qualidade = st.selectbox(
     "📺 Selecione a Resolução / Formato:",
-    ["4K Ultra HD", "1080p Full HD", "720p HD", "Apenas Áudio (MP3)"]
+    ["4K Ultra HD (2160p)", "1080p Full HD", "720p HD", "Apenas Áudio (MP3)"]
 )
 
 if st.button("🚀 Processar Vídeo"):
@@ -67,19 +67,22 @@ if st.button("🚀 Processar Vídeo"):
     elif "playlist" in raw_url.lower():
         st.error("Links de playlist não são suportados. Cole o link de um vídeo individual!")
     else:
-        with st.spinner("⏳ Processando e unindo áudio + vídeo em alta qualidade..."):
+        with st.spinner("⏳ Processando e unindo faixas de alta definição (HD/4K)..."):
             clean_url = raw_url.strip()
 
-            # Pega o caminho do FFmpeg automático do sistema
-            ffmpeg_path = imageio_ffmpeg.get_ffmpeg_exe()
+            # Tenta pegar o executável do ffmpeg
+            try:
+                ffmpeg_bin = imageio_ffmpeg.get_ffmpeg_exe()
+            except:
+                ffmpeg_bin = 'ffmpeg'
 
-            # Regras de alta qualidade real
+            # Seleção rigorosa de alta definição
             if "4K" in qualidade:
-                format_opt = "bestvideo[height<=2160]+bestaudio/best"
+                format_opt = "bestvideo[height<=2160][ext=mp4]+bestaudio[ext=m4a]/bestvideo[height<=2160]+bestaudio/best"
             elif "1080p" in qualidade:
-                format_opt = "bestvideo[height<=1080]+bestaudio/best"
+                format_opt = "bestvideo[height<=1080][ext=mp4]+bestaudio[ext=m4a]/bestvideo[height<=1080]+bestaudio/best"
             elif "720p" in qualidade:
-                format_opt = "bestvideo[height<=720]+bestaudio/best"
+                format_opt = "bestvideo[height<=720][ext=mp4]+bestaudio[ext=m4a]/bestvideo[height<=720]+bestaudio/best"
             else:
                 format_opt = "bestaudio/best"
 
@@ -93,7 +96,7 @@ if st.button("🚀 Processar Vídeo"):
                 opts = {
                     'outtmpl': output_template,
                     'format': format_opt,
-                    'ffmpeg_location': ffmpeg_path, # Injeta o FFmpeg no yt-dlp
+                    'ffmpeg_location': ffmpeg_bin,
                     'nocheckcertificate': True,
                     'quiet': True,
                     'no_warnings': True,
@@ -141,7 +144,7 @@ if st.button("🚀 Processar Vídeo"):
                     except:
                         pass
 
-                    st.success("✅ Vídeo pronto em alta definição!")
+                    st.success("✅ Vídeo pronto na máxima resolução!")
                     st.download_button(
                         label="📥 CLIQUE AQUI PARA BAIXAR NO SEU CELULAR",
                         data=file_bytes,
