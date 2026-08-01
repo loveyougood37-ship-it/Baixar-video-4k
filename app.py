@@ -67,22 +67,21 @@ if st.button("🚀 Processar Vídeo"):
     elif "playlist" in raw_url.lower():
         st.error("Links de playlist não são suportados. Cole o link de um vídeo individual!")
     else:
-        with st.spinner("⏳ Processando e unindo faixas de alta definição (HD/4K)..."):
+        with st.spinner("⏳ Baixando e mesclando em alta definição..."):
             clean_url = raw_url.strip()
 
-            # Tenta pegar o executável do ffmpeg
             try:
                 ffmpeg_bin = imageio_ffmpeg.get_ffmpeg_exe()
             except:
                 ffmpeg_bin = 'ffmpeg'
 
-            # Seleção rigorosa de alta definição
+            # Regras refinadas: Garante a MAIOR qualidade disponível sem cair para 144p/360p
             if "4K" in qualidade:
-                format_opt = "bestvideo[height<=2160][ext=mp4]+bestaudio[ext=m4a]/bestvideo[height<=2160]+bestaudio/best"
+                format_opt = "bestvideo[height<=2160]+bestaudio/bestvideo+bestaudio"
             elif "1080p" in qualidade:
-                format_opt = "bestvideo[height<=1080][ext=mp4]+bestaudio[ext=m4a]/bestvideo[height<=1080]+bestaudio/best"
+                format_opt = "bestvideo[height<=1080]+bestaudio/bestvideo+bestaudio"
             elif "720p" in qualidade:
-                format_opt = "bestvideo[height<=720][ext=mp4]+bestaudio[ext=m4a]/bestvideo[height<=720]+bestaudio/best"
+                format_opt = "bestvideo[height<=720]+bestaudio/bestvideo+bestaudio"
             else:
                 format_opt = "bestaudio/best"
 
@@ -100,6 +99,8 @@ if st.button("🚀 Processar Vídeo"):
                     'nocheckcertificate': True,
                     'quiet': True,
                     'no_warnings': True,
+                    # Evita conversões pesadas no Render mantendo a qualidade original da fonte
+                    'prefer_free_formats': True,
                     'user_agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36',
                     'extractor_args': {
                         'youtube': {
@@ -144,7 +145,7 @@ if st.button("🚀 Processar Vídeo"):
                     except:
                         pass
 
-                    st.success("✅ Vídeo pronto na máxima resolução!")
+                    st.success("✅ Vídeo pronto em alta definição!")
                     st.download_button(
                         label="📥 CLIQUE AQUI PARA BAIXAR NO SEU CELULAR",
                         data=file_bytes,
