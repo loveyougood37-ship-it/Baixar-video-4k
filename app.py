@@ -2,6 +2,7 @@ import streamlit as st
 import yt_dlp
 import os
 import tempfile
+import glob
 import imageio_ffmpeg
 
 st.set_page_config(page_title="Baixador Privado 4K", page_icon="🎬", layout="centered")
@@ -67,7 +68,7 @@ if st.button("🚀 Processar Vídeo"):
     elif "playlist" in raw_url.lower():
         st.error("Links de playlist não são suportados. Cole o link de um vídeo individual!")
     else:
-        with st.spinner("⏳ Baixando e mesclando em alta definição..."):
+        with st.spinner("⏳ Processando e unindo faixas na qualidade MÁXIMA da fonte..."):
             clean_url = raw_url.strip()
 
             try:
@@ -75,21 +76,22 @@ if st.button("🚀 Processar Vídeo"):
             except:
                 ffmpeg_bin = 'ffmpeg'
 
-            # Regras refinadas: Garante a MAIOR qualidade disponível sem cair para 144p/360p
+            # Pega o melhor vídeo independente do codec + melhor áudio
             if "4K" in qualidade:
-                format_opt = "bestvideo[height<=2160]+bestaudio/bestvideo+bestaudio"
+                format_opt = "bestvideo[height<=2160]+bestaudio/best"
             elif "1080p" in qualidade:
-                format_opt = "bestvideo[height<=1080]+bestaudio/bestvideo+bestaudio"
+                format_opt = "bestvideo[height<=1080]+bestaudio/best"
             elif "720p" in qualidade:
-                format_opt = "bestvideo[height<=720]+bestaudio/bestvideo+bestaudio"
+                format_opt = "bestvideo[height<=720]+bestaudio/best"
             else:
                 format_opt = "bestaudio/best"
 
             is_audio = "Apenas Áudio" in qualidade
-            ext_target = "mp3" if is_audio else "mp4"
-
+            
             temp_dir = tempfile.gettempdir()
-            output_template = os.path.join(temp_dir, 'yt_download_temp.%(ext)s')
+            # Deixamos a extensão flexível para o yt-dlp não forçar perda de qualidade
+            prefixo_temp = os.path.join(temp_dir, 'yt_download_target')
+            output_template = f"{prefixo_temp}.%(ext)s"
 
             def rodar_download():
                 opts = {
@@ -99,8 +101,6 @@ if st.button("🚀 Processar Vídeo"):
                     'nocheckcertificate': True,
                     'quiet': True,
                     'no_warnings': True,
-                    # Evita conversões pesadas no Render mantendo a qualidade original da fonte
-                    'prefer_free_formats': True,
                     'user_agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36',
                     'extractor_args': {
                         'youtube': {
@@ -126,17 +126,30 @@ if st.button("🚀 Processar Vídeo"):
                         'preferredquality': '192',
                     }]
                 else:
-                    opts['merge_output_format'] = 'mp4'
+                    # Mescla em MKV se necessário, pois aceita faixas 4K VP9 sem perder NENHUM pixel
+                    opts['merge_output_format'] = 'mkv/mp4'
 
                 with yt_dlp.YoutubeDL(opts) as ydl:
                     info = ydl.extract_info(clean_url, download=True)
                     return info.get('title', 'video') if info else 'video'
 
             try:
-                titulo = rodar_download()
-                final_file = os.path.join(temp_dir, f"yt_download_temp.{ext_target}")
+                # Limpa downloads antigos na pasta temp antes de começar
+                for f in glob.glob(f"{prefixo_temp}.*"):
+                    try:
+                        os.remove(f)
+                    except:
+                        pass
 
-                if os.path.exists(final_file):
+                titulo = rodar_download()
+
+                # Procura o arquivo gerado (pode ser .mp4, .mkv ou .webm)
+                arquivos_encontrados = glob.glob(f"{prefixo_temp}.*")
+
+                if arquivos_encontrados:
+                    final_file = arquivos_encontrados[0]
+                    ext_real = os.path.splitext(final_file)[1].replace('.', '')
+
                     with open(final_file, "rb") as f:
                         file_bytes = f.read()
 
@@ -145,16 +158,18 @@ if st.button("🚀 Processar Vídeo"):
                     except:
                         pass
 
-                    st.success("✅ Vídeo pronto em alta definição!")
+                    mime_type = "audio/mp3" if is_audio else f"video/{ext_real}"
+
+                    st.success("✅ Vídeo processado na resolução MÁXIMA nativa!")
                     st.download_button(
-                        label="📥 CLIQUE AQUI PARA BAIXAR NO SEU CELULAR",
+                        label=f"📥 CLIQUE AQUI PARA BAIXAR (.{ext_real.upper()})",
                         data=file_bytes,
-                        file_name=f"{titulo}.{ext_target}",
-                        mime="audio/mp3" if is_audio else "video/mp4",
+                        file_name=f"{titulo}.{ext_real}",
+                        mime=mime_type,
                         use_container_width=True
                     )
                 else:
-                    st.error("Não foi possível gerar o arquivo. Tente novamente.")
+                    st.error("Não foi possível localizar o arquivo gerado. Tente novamente.")
 
             except Exception as e:
                 st.error(f"Erro ao processar: {e}")
