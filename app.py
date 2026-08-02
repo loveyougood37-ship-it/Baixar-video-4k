@@ -1,6 +1,5 @@
 import streamlit as st
 import requests
-import json
 
 st.set_page_config(page_title="Baixador Privado 4K", page_icon="🎬", layout="centered")
 
@@ -65,10 +64,8 @@ if st.button("🚀 Processar Vídeo"):
     elif "playlist" in raw_url.lower():
         st.error("Links de playlist não são suportados. Cole o link de um vídeo individual!")
     else:
-        with st.spinner("⚡ Gerando link direto de alta velocidade e qualidade 4K..."):
+        with st.spinner("⚡ Gerando link de download direto em alta velocidade..."):
             clean_url = raw_url.strip()
-
-            # Mapeamento de qualidade para a API
             is_audio = "Apenas Áudio" in qualidade
             
             if "4K" in qualidade:
@@ -80,7 +77,6 @@ if st.button("🚀 Processar Vídeo"):
             else:
                 res_val = "1080"
 
-            # Configuração do payload da API Cobalt
             headers = {
                 "Accept": "application/json",
                 "Content-Type": "application/json"
@@ -90,11 +86,10 @@ if st.button("🚀 Processar Vídeo"):
                 "url": clean_url,
                 "videoQuality": res_val,
                 "downloadMode": "audio" if is_audio else "auto",
-                "audioFormat": "mp3" if is_audio else "mp3",
                 "youtubeVideoCodec": "vp9"
             }
 
-            # Instâncias públicas e oficiais da API do Cobalt
+            # Instâncias da API de alta velocidade
             instancias_api = [
                 "https://api.cobalt.tools/",
                 "https://cobalt-api.kwiatekmonster.com/",
@@ -102,51 +97,44 @@ if st.button("🚀 Processar Vídeo"):
             ]
 
             download_url = None
-            erro_msg = ""
 
             for api_base in instancias_api:
                 try:
-                    response = requests.post(api_base, headers=headers, json=payload, timeout=12)
+                    response = requests.post(api_base, headers=headers, json=payload, timeout=10)
                     if response.status_code == 200:
                         data = response.json()
                         status = data.get("status")
-                        
                         if status in ["stream", "redirect", "tunnel"]:
                             download_url = data.get("url")
                             break
                         elif status == "picker":
-                            # Caso retorne múltiplos links, pega a primeira opção
                             picker_items = data.get("picker", [])
                             if picker_items:
                                 download_url = picker_items[0].get("url")
                                 break
-                    else:
-                        erro_msg = f"Servidor respondeu com código {response.status_code}"
-                except Exception as e:
-                    erro_msg = str(e)
+                except:
                     continue
 
             if download_url:
-                st.success("✅ Vídeo processado na máxima resolução!")
-                
-                # Baixa os bytes do arquivo para disponibilizar botão direto no Streamlit
-                try:
-                    file_req = requests.get(download_url, stream=True, timeout=60)
-                    if file_req.status_code == 200:
-                        file_bytes = file_req.content
-                        ext = "mp3" if is_audio else "mp4"
-                        
-                        st.download_button(
-                            label="📥 CLIQUE AQUI PARA BAIXAR O ARQUIVO",
-                            data=file_bytes,
-                            file_name=f"video_4k.{ext}",
-                            mime="audio/mp3" if is_audio else "video/mp4",
-                            use_container_width=True
-                        )
-                    else:
-                        st.markdown(f"[👉 CLIQUE AQUI PARA BAIXAR DIRETO]({download_url})")
-                except:
-                    # Se o arquivo for gigantesco, disponibiliza o link direto de alta velocidade
-                    st.markdown(f"[👉 CLIQUE AQUI PARA BAIXAR DIRETO NO CELULAR]({download_url})")
+                st.success("✅ Link gerado na máxima resolução nativa!")
+                st.markdown(
+                    f'''
+                    <a href="{download_url}" target="_blank" style="text-decoration: none;">
+                        <div style="
+                            background-color: #28a745;
+                            color: white;
+                            padding: 15px;
+                            text-align: center;
+                            border-radius: 8px;
+                            font-weight: bold;
+                            font-size: 18px;
+                            margin-top: 10px;
+                        ">
+                            📥 CLIQUE AQUI PARA BAIXAR O VÍDEO
+                        </div>
+                    </a>
+                    ''',
+                    unsafe_allow_html=True
+                )
             else:
-                st.error("Não foi possível obter o link do vídeo. Tente novamente ou verifique o link do YouTube.")
+                st.error("Não foi possível processar este vídeo no momento. Verifique a URL.")
