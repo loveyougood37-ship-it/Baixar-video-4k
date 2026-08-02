@@ -1,5 +1,6 @@
 import streamlit as st
 import requests
+import re
 
 st.set_page_config(page_title="Baixador Privado 4K", page_icon="🎬", layout="centered")
 
@@ -64,8 +65,10 @@ if st.button("🚀 Processar Vídeo"):
     elif "playlist" in raw_url.lower():
         st.error("Links de playlist não são suportados. Cole o link de um vídeo individual!")
     else:
-        with st.spinner("⚡ Gerando link de download direto em alta velocidade..."):
-            clean_url = raw_url.strip()
+        with st.spinner("⚡ Limpando URL e gerando download em 4K nativo..."):
+            # 1. Limpa parâmetros chatos do YouTube (como ?si=...)
+            clean_url = raw_url.split('?')[0].split('&')[0].strip()
+            
             is_audio = "Apenas Áudio" in qualidade
             
             if "4K" in qualidade:
@@ -82,6 +85,7 @@ if st.button("🚀 Processar Vídeo"):
                 "Content-Type": "application/json"
             }
 
+            # Configurações otimizadas do payload
             payload = {
                 "url": clean_url,
                 "videoQuality": res_val,
@@ -89,18 +93,19 @@ if st.button("🚀 Processar Vídeo"):
                 "youtubeVideoCodec": "vp9"
             }
 
-            # Instâncias da API de alta velocidade
+            # Várias instâncias ativas do servidor de alta velocidade
             instancias_api = [
                 "https://api.cobalt.tools/",
                 "https://cobalt-api.kwiatekmonster.com/",
-                "https://co.wuk.sh/"
+                "https://co.wuk.sh/",
+                "https://api.cobalt.crst.cloud/"
             ]
 
             download_url = None
 
             for api_base in instancias_api:
                 try:
-                    response = requests.post(api_base, headers=headers, json=payload, timeout=10)
+                    response = requests.post(api_base, headers=headers, json=payload, timeout=12)
                     if response.status_code == 200:
                         data = response.json()
                         status = data.get("status")
@@ -116,25 +121,26 @@ if st.button("🚀 Processar Vídeo"):
                     continue
 
             if download_url:
-                st.success("✅ Link gerado na máxima resolução nativa!")
+                st.success("✅ Vídeo pronto na resolução MÁXIMA!")
                 st.markdown(
                     f'''
                     <a href="{download_url}" target="_blank" style="text-decoration: none;">
                         <div style="
                             background-color: #28a745;
                             color: white;
-                            padding: 15px;
+                            padding: 16px;
                             text-align: center;
                             border-radius: 8px;
                             font-weight: bold;
                             font-size: 18px;
                             margin-top: 10px;
+                            box-shadow: 0px 4px 10px rgba(0,0,0,0.3);
                         ">
-                            📥 CLIQUE AQUI PARA BAIXAR O VÍDEO
+                            📥 CLIQUE AQUI PARA BAIXAR AGORA
                         </div>
                     </a>
                     ''',
                     unsafe_allow_html=True
                 )
             else:
-                st.error("Não foi possível processar este vídeo no momento. Verifique a URL.")
+                st.error("Não foi possível processar o vídeo. Certifique-se de que o vídeo do YouTube não é privado ou com restrição de idade.")
