@@ -6,7 +6,7 @@ import os
 st.set_page_config(page_title="Baixador Privado 4K", page_icon="🎬", layout="centered")
 
 # --- SISTEMA DE SENHA ---
-SENHA_CORRETA = "suasenha1234"  # 👈 TROQUE AQUI PELA SUA SENHA DESEJADA!
+SENHA_CORRETA = "suasenha123"  # 👈 TROQUE AQUI PELA SUA SENHA DESEJADA!
 
 if "autenticado" not in st.session_state:
     st.session_state.autenticado = False
@@ -21,9 +21,9 @@ if not st.session_state.autenticado:
             st.rerun()
         else:
             st.error("Senha incorreta!")
-    st.stop()  # Trava o resto do aplicativo até acertar a senha
+    st.stop()  # Trava o app aqui até acertar a senha
 
-# --- CONTEÚDO DO APP (SÓ APARECE SE ACERTAR A SENHA) ---
+# --- CONTEÚDO DO APP ---
 st.title("🎬 Baixador Privado 4K")
 st.caption("Baixe vídeos do YouTube na máxima resolução e sem limitações.")
 
@@ -46,6 +46,7 @@ if st.button("🚀 Processar Vídeo"):
                 out_dir = "downloads"
                 os.makedirs(out_dir, exist_ok=True)
                 
+                # Resoluções nativas do yt-dlp
                 if "4K" in qualidade:
                     fmt = "bestvideo[height<=2160]+bestaudio/best[height<=2160]/best"
                 elif "1080p" in qualidade:
@@ -61,6 +62,12 @@ if st.button("🚀 Processar Vídeo"):
                     'merge_output_format': 'mp4',
                     'quiet': True,
                     'no_warnings': True,
+                    # CABEÇALHOS PARA EVITAR O ERRO 403 (DISFARCE DE NAVEGADOR)
+                    'http_headers': {
+                        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+                        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+                        'Accept-Language': 'en-us,en;q=0.5',
+                    }
                 }
 
                 with yt_dlp.YoutubeDL(ydl_opts) as ydl:
