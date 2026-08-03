@@ -5,6 +5,25 @@ import os
 # Configuração da página
 st.set_page_config(page_title="Baixador Privado 4K", page_icon="🎬", layout="centered")
 
+# --- SISTEMA DE SENHA ---
+SENHA_CORRETA = "suasenha1234"  # 👈 TROQUE AQUI PELA SUA SENHA DESEJADA!
+
+if "autenticado" not in st.session_state:
+    st.session_state.autenticado = False
+
+if not st.session_state.autenticado:
+    st.title("🔒 Acesso Restrito")
+    senha_digitada = st.text_input("Digite a senha para acessar:", type="password")
+    
+    if st.button("Entrar"):
+        if senha_digitada == SENHA_CORRETA:
+            st.session_state.autenticado = True
+            st.rerun()
+        else:
+            st.error("Senha incorreta!")
+    st.stop()  # Trava o resto do aplicativo até acertar a senha
+
+# --- CONTEÚDO DO APP (SÓ APARECE SE ACERTAR A SENHA) ---
 st.title("🎬 Baixador Privado 4K")
 st.caption("Baixe vídeos do YouTube na máxima resolução e sem limitações.")
 
@@ -24,11 +43,9 @@ if st.button("🚀 Processar Vídeo"):
     else:
         with st.spinner("⚡ Baixando e unindo áudio e vídeo em alta resolução... Aguarde um instante."):
             try:
-                # Pasta de saída temporária
                 out_dir = "downloads"
                 os.makedirs(out_dir, exist_ok=True)
                 
-                # Definindo formatos nativos do yt-dlp
                 if "4K" in qualidade:
                     fmt = "bestvideo[height<=2160]+bestaudio/best[height<=2160]/best"
                 elif "1080p" in qualidade:
@@ -50,14 +67,12 @@ if st.button("🚀 Processar Vídeo"):
                     info = ydl.extract_info(url, download=True)
                     filename = ydl.prepare_filename(info)
                     
-                    # Trata a extensão caso o yt-dlp altere ao juntar MP4
                     if not os.path.exists(filename):
                         base, _ = os.path.splitext(filename)
                         filename = f"{base}.mp4"
 
                 st.success("✅ Vídeo processado com sucesso!")
                 
-                # Botão verde para salvar no celular/PC
                 with open(filename, "rb") as file:
                     st.download_button(
                         label="📥 CLIQUE AQUI PARA SALVAR O VÍDEO",
