@@ -24,7 +24,7 @@ if not st.session_state.autenticado:
     st.stop()
 
 # --- CONTEÚDO DO APP ---
-st.title("🎬 Baixador Privado 4K")
+st.title("🎬 Baixador Privado 4K [VERSÃO 2.0]")
 st.caption("Baixe vídeos do YouTube na máxima resolução e sem limitações.")
 
 url = st.text_input("🔗 Cole a URL do Vídeo do YouTube:")
@@ -38,7 +38,7 @@ if st.button("🚀 Processar Vídeo"):
     if not url:
         st.warning("Por favor, cole um link válido antes de continuar.")
     else:
-        with st.spinner("⚡ Baixando e unindo áudio e vídeo em alta resolução... Aguarde um instante."):
+        with st.spinner("⚡ Baixando em alta resolução... Aguarde."):
             try:
                 out_dir = "downloads"
                 os.makedirs(out_dir, exist_ok=True)
@@ -58,10 +58,10 @@ if st.button("🚀 Processar Vídeo"):
                     'merge_output_format': 'mp4',
                     'quiet': True,
                     'no_warnings': True,
-                    # FORÇA CLIENTES OFICIAIS DO YOUTUBE PARA EVITAR ERRO 403 DEFINITIVAMENTE
+                    # FORÇA O CLIENTE ANDROID VR QUE BURLA O ERRO 403 EM SERVIDORES NUVEM
                     'extractor_args': {
                         'youtube': {
-                            'player_client': ['android', 'ios']
+                            'player_client': ['android_vr', 'web_creator']
                         }
                     }
                 }
