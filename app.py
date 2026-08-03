@@ -1,146 +1,69 @@
 import streamlit as st
-import requests
-import re
+import yt_dlp
+import os
 
+# Configuração da página
 st.set_page_config(page_title="Baixador Privado 4K", page_icon="🎬", layout="centered")
 
-# --- OCULTAR TUDO NO STREAMLIT (CSS GLOBAL) ---
-hide_streamlit_style = """
-            <style>
-            #MainMenu {visibility: hidden !important;}
-            footer {visibility: hidden !important; display: none !important;}
-            header {visibility: hidden !important; display: none !important;}
-            .stAppHeader {display: none !important;}
-            [data-testid="stStatusWidget"] {display: none !important;}
-            [data-testid="stDecoration"] {display: none !important;}
-            [data-testid="stToolbar"] {display: none !important;}
-            .viewerBadge_container__1A54N,
-            .viewerBadge_link__1S137,
-            div[class*="viewerBadge"],
-            div[class*="styles_viewerBadge"],
-            div[class*="stActionButton"],
-            iframe[title*="streamlit"] {
-                display: none !important;
-                visibility: hidden !important;
-            }
-            .block-container {
-                padding-top: 1.5rem !important;
-                padding-bottom: 0rem !important;
-            }
-            </style>
-            """
-st.markdown(hide_streamlit_style, unsafe_allow_html=True)
+st.title("🎬 Baixador Privado 4K")
+st.caption("Baixe vídeos do YouTube na máxima resolução e sem limitações.")
 
-# --- SEGURANÇA E SENHA ---
-SENHA_CORRETA = "suasenha123"
+# Entrada da URL
+url = st.text_input("🔗 Cole a URL do Vídeo do YouTube:")
 
-if "autenticado" not in st.session_state:
-    st.session_state["autenticado"] = False
-
-if not st.session_state["autenticado"]:
-    st.title("🎬 Baixador Privado de Vídeos 4K")
-    senha = st.text_input("🔑 Digite a Senha de Acesso:", type="password")
-    if st.button("Entrar no Sistema"):
-        if senha == SENHA_CORRETA:
-            st.session_state["autenticado"] = True
-            st.rerun()
-        else:
-            st.error("Senha incorreta!")
-    st.stop()
-
-# --- INTERFACE PRINCIPAL ---
-st.title("🎬 Baixador Privado de Vídeos 4K")
-st.caption("Acesso Exclusivo — Alta Qualidade sem Limites")
-
-raw_url = st.text_input("🔗 Cole a URL do Vídeo do YouTube:")
-
+# Seleção de Qualidade
 qualidade = st.selectbox(
-    "📺 Selecione a Resolução / Formato:",
-    ["4K Ultra HD (2160p)", "1080p Full HD", "720p HD", "Apenas Áudio (MP3)"]
+    "📺 Selecione a Resolução Desejada:",
+    ["4K (2160p)", "1080p Full HD", "720p HD", "Apenas Áudio (MP3)"]
 )
 
+# Botão de Ação
 if st.button("🚀 Processar Vídeo"):
-    if not raw_url:
-        st.warning("Por favor, cole um link válido.")
-    elif "playlist" in raw_url.lower():
-        st.error("Links de playlist não são suportados. Cole o link de um vídeo individual!")
+    if not url:
+        st.warning("Por favor, cole um link válido antes de continuar.")
     else:
-        with st.spinner("⚡ Limpando URL e gerando download em 4K nativo..."):
-            # 1. Limpa parâmetros chatos do YouTube (como ?si=...)
-            clean_url = raw_url.split('?')[0].split('&')[0].strip()
-            
-            is_audio = "Apenas Áudio" in qualidade
-            
-            if "4K" in qualidade:
-                res_val = "2160"
-            elif "1080p" in qualidade:
-                res_val = "1080"
-            elif "720p" in qualidade:
-                res_val = "720"
-            else:
-                res_val = "1080"
+        with st.spinner("⚡ Baixando e unindo áudio e vídeo em alta resolução... Aguarde um instante."):
+            try:
+                # Pasta de saída temporária
+                out_dir = "downloads"
+                os.makedirs(out_dir, exist_ok=True)
+                
+                # Definindo formatos nativos do yt-dlp
+                if "4K" in qualidade:
+                    fmt = "bestvideo[height<=2160]+bestaudio/best[height<=2160]/best"
+                elif "1080p" in qualidade:
+                    fmt = "bestvideo[height<=1080]+bestaudio/best[height<=1080]/best"
+                elif "720p" in qualidade:
+                    fmt = "bestvideo[height<=720]+bestaudio/best[height<=720]/best"
+                else:
+                    fmt = "bestaudio/best"
 
-            headers = {
-                "Accept": "application/json",
-                "Content-Type": "application/json"
-            }
+                ydl_opts = {
+                    'format': fmt,
+                    'outtmpl': f'{out_dir}/%(title)s.%(ext)s',
+                    'merge_output_format': 'mp4',
+                    'quiet': True,
+                    'no_warnings': True,
+                }
 
-            # Configurações otimizadas do payload
-            payload = {
-                "url": clean_url,
-                "videoQuality": res_val,
-                "downloadMode": "audio" if is_audio else "auto",
-                "youtubeVideoCodec": "vp9"
-            }
+                with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+                    info = ydl.extract_info(url, download=True)
+                    filename = ydl.prepare_filename(info)
+                    
+                    # Trata a extensão caso o yt-dlp altere ao juntar MP4
+                    if not os.path.exists(filename):
+                        base, _ = os.path.splitext(filename)
+                        filename = f"{base}.mp4"
 
-            # Várias instâncias ativas do servidor de alta velocidade
-            instancias_api = [
-                "https://api.cobalt.tools/",
-                "https://cobalt-api.kwiatekmonster.com/",
-                "https://co.wuk.sh/",
-                "https://api.cobalt.crst.cloud/"
-            ]
-
-            download_url = None
-
-            for api_base in instancias_api:
-                try:
-                    response = requests.post(api_base, headers=headers, json=payload, timeout=12)
-                    if response.status_code == 200:
-                        data = response.json()
-                        status = data.get("status")
-                        if status in ["stream", "redirect", "tunnel"]:
-                            download_url = data.get("url")
-                            break
-                        elif status == "picker":
-                            picker_items = data.get("picker", [])
-                            if picker_items:
-                                download_url = picker_items[0].get("url")
-                                break
-                except:
-                    continue
-
-            if download_url:
-                st.success("✅ Vídeo pronto na resolução MÁXIMA!")
-                st.markdown(
-                    f'''
-                    <a href="{download_url}" target="_blank" style="text-decoration: none;">
-                        <div style="
-                            background-color: #28a745;
-                            color: white;
-                            padding: 16px;
-                            text-align: center;
-                            border-radius: 8px;
-                            font-weight: bold;
-                            font-size: 18px;
-                            margin-top: 10px;
-                            box-shadow: 0px 4px 10px rgba(0,0,0,0.3);
-                        ">
-                            📥 CLIQUE AQUI PARA BAIXAR AGORA
-                        </div>
-                    </a>
-                    ''',
-                    unsafe_allow_html=True
-                )
-            else:
-                st.error("Não foi possível processar o vídeo. Certifique-se de que o vídeo do YouTube não é privado ou com restrição de idade.")
+                st.success("✅ Vídeo processado com sucesso!")
+                
+                # Botão verde para salvar no celular/PC
+                with open(filename, "rb") as file:
+                    st.download_button(
+                        label="📥 CLIQUE AQUI PARA SALVAR O VÍDEO",
+                        data=file,
+                        file_name=os.path.basename(filename),
+                        mime="video/mp4"
+                    )
+            except Exception as e:
+                st.error(f"Erro ao processar o vídeo: {e}")
